@@ -119,11 +119,9 @@
     relative strength, z-scored onto a 100-centred scale. Quadrants and rotation behave correctly,
     but the numbers will not tie out against a Bloomberg or Optuma RRG.
     <br><br>
-    <strong>Sector points are equal-weighted baskets, not the NSE sectoral indices.</strong> Yahoo
-    serves no price history for 10 of the 12 sectoral indices this board maps — only a live quote —
-    so a real-index series exists for Banks and IT alone. Mixing two float-weighted indices with 21
-    equal-weighted baskets would put non-comparable points on one chart, so every sector is built
-    the same way: constituents rebased to 100 and averaged. <span id="basisNote"></span>
+    <strong>Sector points are equal-weighted baskets, not the NSE sectoral indices.</strong> Every
+    sector is built the same way — its constituents rebased to 100 and averaged — so all the points
+    on the chart are directly comparable. <span id="basisNote"></span>
     <br><br>
     <strong>Corporate actions are repaired, and the repair is not always enough.</strong>
     A split or bonus changes the share count and nothing else, so history is back-adjusted
@@ -1324,8 +1322,7 @@ function syncChrome(){
     (na.length ? na.map(e=>`<strong>${esc(e.name)}: NA</strong> — ${esc(e.reason)}.`).join(' ')+' ' : '')
     + (plain.length ? `Excluded on this timeframe: ${plain.map(e=>esc(e.name)).join(', ')}. ` : '')
     + (u ? `<br>Same universe as the F&amp;O sector board: <strong>${u.total}</strong> names, `
-         + `${u.plotted} plotted and ${u.excluded} excluded above. The two boards read one `
-         + `shared list, and this build fails if any name is neither plotted nor explained.` : '');
+         + `${u.plotted} plotted and ${u.excluded} excluded above.` : '');
   const secs=(DATA&&DATA.sectors[period])||[];
   const part=secs.filter(s=>s.basis<s.count);
   document.getElementById('basisNote').textContent = part.length
