@@ -209,6 +209,15 @@ function setStatus(text, stale){
   if(tag) tag.classList.toggle('stale', !!stale);
 }
 
+/* NSE cash session, Mon-Fri 09:15-15:35 IST (a few minutes past the close so
+   the final prints land). Exchange holidays are not modelled: on one the board
+   reads "(stale)" after STALE_MS, which is true -- there is no new data. */
+function marketOpenIST(now = new Date()){
+  const ist = new Date(now.getTime() + (5.5 * 60 - (-now.getTimezoneOffset())) * 60000);
+  const day = ist.getDay(), mins = ist.getHours() * 60 + ist.getMinutes();
+  return day >= 1 && day <= 5 && mins >= 9 * 60 + 15 && mins <= 15 * 60 + 35;
+}
+
 /* Poll `dataFile` every POLL_MS and hand the parsed payload to `renderFn`. */
 function startPolling(dataFile, renderFn){
   async function poll(){
@@ -222,6 +231,15 @@ function startPolling(dataFile, renderFn){
       const ageMs = Date.now() - generated.getTime();
       const ageMin = Math.round(ageMs / 60000);
       const timeStr = generated.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      if(!marketOpenIST()){
+        // Outside the session the file only changes when prices do, so an old
+        // timestamp is expected, not a fault -- say so instead of "(stale)".
+        const sameDay = generated.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })
+                     === new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+        const dayStr = sameDay ? '' : generated.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short' }) + ', ';
+        setStatus(`Market closed · last update ${dayStr}${timeStr} IST`, false);
+        return;
+      }
       const stale = ageMs > STALE_MS;
       setStatus(`Updated ${timeStr} IST · ${ageMin < 1 ? 'just now' : ageMin + 'm ago'}${stale ? ' (stale)' : ''}`, stale);
     }catch(e){
