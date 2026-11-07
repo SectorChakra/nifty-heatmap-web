@@ -210,12 +210,21 @@ function setStatus(text, stale){
 }
 
 /* NSE cash session, Mon-Fri 09:15-15:35 IST (a few minutes past the close so
-   the final prints land). Exchange holidays are not modelled: on one the board
-   reads "(stale)" after STALE_MS, which is true -- there is no new data. */
+   the final prints land), skipping the trading holidays in assets/nse_holidays.js
+   (generated from the live stack's calendar). If that file failed to load, or
+   the year has rolled past its list, holidays fall back to "(stale)". */
+function istNow(now = new Date()){
+  return new Date(now.getTime() + (5.5 * 60 - (-now.getTimezoneOffset())) * 60000);
+}
+function nseHolidayIST(now = new Date()){
+  const ist = istNow(now);
+  const key = ist.getFullYear() + '-' + String(ist.getMonth() + 1).padStart(2, '0') + '-' + String(ist.getDate()).padStart(2, '0');
+  return !!(window.NSE_HOLIDAYS && window.NSE_HOLIDAYS.has(key));
+}
 function marketOpenIST(now = new Date()){
-  const ist = new Date(now.getTime() + (5.5 * 60 - (-now.getTimezoneOffset())) * 60000);
+  const ist = istNow(now);
   const day = ist.getDay(), mins = ist.getHours() * 60 + ist.getMinutes();
-  return day >= 1 && day <= 5 && mins >= 9 * 60 + 15 && mins <= 15 * 60 + 35;
+  return day >= 1 && day <= 5 && !nseHolidayIST(now) && mins >= 9 * 60 + 15 && mins <= 15 * 60 + 35;
 }
 
 /* Poll `dataFile` every POLL_MS and hand the parsed payload to `renderFn`. */
@@ -237,7 +246,7 @@ function startPolling(dataFile, renderFn){
         const sameDay = generated.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })
                      === new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
         const dayStr = sameDay ? '' : generated.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short' }) + ', ';
-        setStatus(`Market closed · last update ${dayStr}${timeStr} IST`, false);
+        setStatus(`Market closed${nseHolidayIST() ? ' (NSE holiday)' : ''} · last update ${dayStr}${timeStr} IST`, false);
         return;
       }
       const stale = ageMs > STALE_MS;
